@@ -1,3 +1,5 @@
+from typing import List
+
 from fastapi import Depends, HTTPException, APIRouter
 from sqlalchemy.orm import Session
 from datetime import datetime
@@ -95,4 +97,73 @@ def cancel_booking(
 
     db_booking.status = False   # mark booking as cancelled rather than deleting
     db.commit()
+    db.refresh(db_booking)
     return {"message": "Booking cancelled successfully"}
+
+@router.get("/my", response_model=List[schema.BookingResponse])
+def get_my_bookings(
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    bookings = db.query(model.Booking).filter(
+        model.Booking.user_id == current_user["user_id"]
+    ).all()
+    return bookings
+
+
+@router.get("/admin/{restaurant_id}/bookings", response_model=List[schema.BookingResponse])
+def get_bookings_for_restaurant(
+    restaurant_id: int,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    restaurant = db.query(model.Restaurant).filter(
+        model.Restaurant.id == restaurant_id
+    ).first()
+    if not restaurant:
+        raise HTTPException(status_code=404, detail="Restaurant not found")
+
+    if restaurant.admin_id != current_user["user_id"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    bookings = db.query(model.Booking).filter(
+        model.Booking.restaurant_id == restaurant_id
+    ).all()
+    return bookings
+
+# Additional admin endpoints for updating/cancelling any booking could be added similarly, with the same restaurant admin check.
+@router.put("/{booking_id}/cancel")
+def admin_cancel_booking(
+    booking_id: int,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    db_booking = db.query(model.Booking).filter(
+        model.Booking.id == booking_id
+    ).first()
+    if not db_booking:
+        raise HTTPException(status_code=404, detail="Booking not found")
+
+    restaurant = db.query(model.Restaurant).filter(
+        model.Restaurant.id == db_booking.restaurant_id
+    ).first()
+    
+    if restaurant.admin_id != current_user["user_id"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    table = db.query(model.Table).filter(
+        model.Table.id == db_booking.table_id
+    ).first()
+
+    other_active = db.query(model.Booking).filter(
+        model.Booking.table_id == db_booking.table_id,
+        model.Booking.status == True,
+        model.Booking.id != booking_id
+    ).first()
+    if not other_active and table:
+        table.booking_status = False
+
+    db_booking.status = False   # mark booking as cancelled rather than deleting
+    db.commit()
+    db.refresh(db_booking)
+    return {"message": "Booking cancelled successfully by admin"}
