@@ -4,3 +4,4 @@ tests/
 __pycache__/
 router/__pycache__/
 myenv/
+seed.py
