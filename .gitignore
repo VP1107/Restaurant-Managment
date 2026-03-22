@@ -1,0 +1,6 @@
+.env
+tests/
+.pyteset_cache/
+__pycache__/
+router/__pycache__/
+myenv/
