@@ -1,5 +1,5 @@
-from pydantic import BaseModel, Field
-from typing import Literal, Optional, Annotated
+from pydantic import BaseModel
+from typing import Literal, Optional
 from datetime import datetime
 
 class Dish(BaseModel):
@@ -43,7 +43,6 @@ class UserRegister(BaseModel):
     name: str
     email: str
     password: str
-    role: Optional[Literal["customer"]] = "customer"
 
 class PromoteUser(BaseModel):
     id: int
@@ -93,7 +92,7 @@ class BookingCreate(BaseModel):
     restaurant_id: int
     date: datetime
     guests: int
-
+    
 class BookingResponse(BaseModel):
     id: int
     user_id: int

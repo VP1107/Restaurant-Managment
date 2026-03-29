@@ -1,996 +1,1115 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>TableOne — Restaurant Booking</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet">
-<style>
-  :root {
-    --ink: #0e0c0a;
-    --paper: #f5f0e8;
-    --cream: #ede7d9;
-    --gold: #b8955a;
-    --gold-light: #d4b07a;
-    --rust: #8b3a2a;
-    --mist: #c8c0b0;
-    --card: #faf7f2;
-    --border: #d8d0c0;
-  }
-
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-
-  body {
-    font-family: 'DM Mono', monospace;
-    background: var(--paper);
-    color: var(--ink);
-    min-height: 100vh;
-    overflow-x: hidden;
-  }
-
-  /* Grain overlay */
-  body::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
-    pointer-events: none;
-    z-index: 9999;
-    opacity: 0.5;
-  }
-
-  /* ── LAYOUT ── */
-  .app { display: flex; flex-direction: column; min-height: 100vh; }
-
-  /* ── TOPBAR ── */
-  .topbar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 20px 40px;
-    border-bottom: 1px solid var(--border);
-    background: var(--paper);
-    position: sticky;
-    top: 0;
-    z-index: 100;
-  }
-
-  .logo {
-    font-family: 'Cormorant Garamond', serif;
-    font-size: 1.6rem;
-    font-weight: 300;
-    letter-spacing: 0.15em;
-    color: var(--ink);
-  }
-
-  .logo span { color: var(--gold); font-style: italic; }
-
-  .nav-links {
-    display: flex;
-    gap: 8px;
-    align-items: center;
-  }
-
-  .nav-btn {
-    font-family: 'DM Mono', monospace;
-    font-size: 0.65rem;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    padding: 8px 16px;
-    border: 1px solid var(--border);
-    background: transparent;
-    color: var(--ink);
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-
-  .nav-btn:hover, .nav-btn.active {
-    background: var(--ink);
-    color: var(--paper);
-    border-color: var(--ink);
-  }
-
-  .nav-btn.accent {
-    background: var(--gold);
-    color: var(--paper);
-    border-color: var(--gold);
-  }
-
-  .nav-btn.accent:hover { background: var(--gold-light); }
-
-  .user-info {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    font-size: 0.65rem;
-    letter-spacing: 0.1em;
-    color: var(--mist);
-  }
-
-  /* ── MAIN ── */
-  main { flex: 1; padding: 0; }
-
-  /* ── HERO ── */
-  .hero {
-    padding: 80px 40px 60px;
-    border-bottom: 1px solid var(--border);
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 60px;
-    align-items: end;
-  }
-
-  .hero-text h1 {
-    font-family: 'Cormorant Garamond', serif;
-    font-size: clamp(3rem, 6vw, 5.5rem);
-    font-weight: 300;
-    line-height: 1.05;
-    letter-spacing: -0.01em;
-    margin-bottom: 20px;
-  }
-
-  .hero-text h1 em {
-    font-style: italic;
-    color: var(--gold);
-    display: block;
-  }
-
-  .hero-text p {
-    font-size: 0.7rem;
-    letter-spacing: 0.1em;
-    color: var(--mist);
-    line-height: 1.8;
-    max-width: 340px;
-  }
-
-  .hero-actions {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    align-self: center;
-  }
-
-  .hero-stat {
-    display: flex;
-    align-items: baseline;
-    gap: 8px;
-    padding: 20px 0;
-    border-top: 1px solid var(--border);
-  }
-
-  .hero-stat .num {
-    font-family: 'Cormorant Garamond', serif;
-    font-size: 2.5rem;
-    font-weight: 300;
-    color: var(--gold);
-  }
-
-  .hero-stat .label {
-    font-size: 0.6rem;
-    letter-spacing: 0.15em;
-    text-transform: uppercase;
-    color: var(--mist);
-  }
-
-  /* ── SECTIONS ── */
-  .section {
-    display: none;
-    padding: 48px 40px;
-    animation: fadeUp 0.35s ease both;
-  }
-
-  .section.active { display: block; }
-
-  @keyframes fadeUp {
-    from { opacity: 0; transform: translateY(16px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
-
-  .section-header {
-    display: flex;
-    align-items: baseline;
-    gap: 16px;
-    margin-bottom: 36px;
-    padding-bottom: 16px;
-    border-bottom: 1px solid var(--border);
-  }
-
-  .section-header h2 {
-    font-family: 'Cormorant Garamond', serif;
-    font-size: 2rem;
-    font-weight: 300;
-    letter-spacing: 0.03em;
-  }
-
-  .section-header .tag {
-    font-size: 0.6rem;
-    letter-spacing: 0.15em;
-    text-transform: uppercase;
-    color: var(--mist);
-    padding: 4px 8px;
-    border: 1px solid var(--border);
-  }
-
-  /* ── CARDS GRID ── */
-  .cards-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 1px;
-    background: var(--border);
-    border: 1px solid var(--border);
-  }
-
-  .card {
-    background: var(--card);
-    padding: 28px;
-    transition: background 0.2s;
-    position: relative;
-  }
-
-  .card:hover { background: var(--cream); }
-
-  .card-label {
-    font-size: 0.58rem;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
-    color: var(--mist);
-    margin-bottom: 8px;
-  }
-
-  .card-title {
-    font-family: 'Cormorant Garamond', serif;
-    font-size: 1.4rem;
-    font-weight: 400;
-    margin-bottom: 6px;
-  }
-
-  .card-subtitle {
-    font-size: 0.65rem;
-    color: var(--mist);
-    letter-spacing: 0.05em;
-    margin-bottom: 16px;
-    line-height: 1.6;
-  }
-
-  .card-meta {
-    display: flex;
-    gap: 12px;
-    flex-wrap: wrap;
-  }
-
-  .pill {
-    font-size: 0.58rem;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    padding: 4px 10px;
-    border: 1px solid var(--border);
-    color: var(--ink);
-  }
-
-  .pill.gold {
-    border-color: var(--gold);
-    color: var(--gold);
-  }
-
-  .pill.rust {
-    border-color: var(--rust);
-    color: var(--rust);
-  }
-
-  .pill.green {
-    border-color: #4a7c59;
-    color: #4a7c59;
-  }
-
-  .card-actions {
-    display: flex;
-    gap: 8px;
-    margin-top: 20px;
-    padding-top: 16px;
-    border-top: 1px solid var(--border);
-  }
-
-  .btn {
-    font-family: 'DM Mono', monospace;
-    font-size: 0.6rem;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    padding: 8px 14px;
-    border: 1px solid var(--border);
-    background: transparent;
-    color: var(--ink);
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-
-  .btn:hover { background: var(--ink); color: var(--paper); border-color: var(--ink); }
-
-  .btn.primary {
-    background: var(--gold);
-    color: var(--paper);
-    border-color: var(--gold);
-  }
-
-  .btn.primary:hover { background: var(--gold-light); }
-
-  .btn.danger { color: var(--rust); border-color: var(--rust); }
-  .btn.danger:hover { background: var(--rust); color: var(--paper); }
-
-  /* ── FORM ── */
-  .form-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-    gap: 20px;
-    max-width: 700px;
-  }
-
-  .form-group { display: flex; flex-direction: column; gap: 8px; }
-
-  .form-group label {
-    font-size: 0.6rem;
-    letter-spacing: 0.15em;
-    text-transform: uppercase;
-    color: var(--mist);
-  }
-
-  .form-group input,
-  .form-group select {
-    font-family: 'DM Mono', monospace;
-    font-size: 0.75rem;
-    padding: 12px 14px;
-    border: 1px solid var(--border);
-    background: var(--card);
-    color: var(--ink);
-    outline: none;
-    transition: border-color 0.2s;
-  }
-
-  .form-group input:focus,
-  .form-group select:focus { border-color: var(--gold); }
-
-  .form-group select option { background: var(--card); }
-
-  .form-row { grid-column: 1 / -1; }
-
-  .form-actions {
-    display: flex;
-    gap: 10px;
-    margin-top: 8px;
-    grid-column: 1 / -1;
-  }
-
-  .btn-lg {
-    font-family: 'DM Mono', monospace;
-    font-size: 0.65rem;
-    letter-spacing: 0.15em;
-    text-transform: uppercase;
-    padding: 14px 28px;
-    border: 1px solid var(--border);
-    background: var(--ink);
-    color: var(--paper);
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-
-  .btn-lg:hover { background: var(--gold); border-color: var(--gold); }
-
-  .btn-lg.ghost {
-    background: transparent;
-    color: var(--ink);
-  }
-
-  .btn-lg.ghost:hover { background: var(--ink); color: var(--paper); }
-
-  /* ── AUTH PANEL ── */
-  .auth-panel {
-    max-width: 480px;
-    margin: 0 auto;
-    padding: 48px 40px;
-    background: var(--card);
-    border: 1px solid var(--border);
-  }
-
-  .auth-panel h2 {
-    font-family: 'Cormorant Garamond', serif;
-    font-size: 2rem;
-    font-weight: 300;
-    margin-bottom: 6px;
-  }
-
-  .auth-panel .subtitle {
-    font-size: 0.65rem;
-    color: var(--mist);
-    letter-spacing: 0.08em;
-    margin-bottom: 32px;
-  }
-
-  .auth-toggle {
-    display: flex;
-    gap: 0;
-    margin-bottom: 28px;
-    border: 1px solid var(--border);
-  }
-
-  .auth-toggle button {
-    flex: 1;
-    padding: 10px;
-    font-family: 'DM Mono', monospace;
-    font-size: 0.6rem;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    border: none;
-    background: transparent;
-    color: var(--mist);
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-
-  .auth-toggle button.active {
-    background: var(--ink);
-    color: var(--paper);
-  }
-
-  /* ── NOTICE ── */
-  .notice {
-    padding: 14px 18px;
-    font-size: 0.65rem;
-    letter-spacing: 0.06em;
-    line-height: 1.6;
-    border-left: 3px solid var(--gold);
-    background: var(--cream);
-    margin-bottom: 24px;
-  }
-
-  .notice.error {
-    border-left-color: var(--rust);
-    color: var(--rust);
-  }
-
-  .notice.success {
-    border-left-color: #4a7c59;
-    color: #4a7c59;
-  }
-
-  /* ── TABLE ── */
-  .data-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 0.68rem;
-  }
-
-  .data-table th {
-    text-align: left;
-    padding: 10px 16px;
-    font-size: 0.58rem;
-    letter-spacing: 0.15em;
-    text-transform: uppercase;
-    color: var(--mist);
-    border-bottom: 1px solid var(--border);
-    font-weight: 400;
-  }
-
-  .data-table td {
-    padding: 14px 16px;
-    border-bottom: 1px solid var(--border);
-    vertical-align: middle;
-  }
-
-  .data-table tr:hover td { background: var(--cream); }
-
-  /* ── EMPTY STATE ── */
-  .empty {
-    padding: 60px 40px;
-    text-align: center;
-    color: var(--mist);
-  }
-
-  .empty .icon {
-    font-family: 'Cormorant Garamond', serif;
-    font-size: 3rem;
-    font-weight: 300;
-    display: block;
-    margin-bottom: 12px;
-    color: var(--border);
-  }
-
-  .empty p { font-size: 0.65rem; letter-spacing: 0.1em; }
-
-  /* ── LOADING ── */
-  .loading {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 24px;
-    font-size: 0.62rem;
-    letter-spacing: 0.12em;
-    color: var(--mist);
-  }
-
-  .spinner {
-    width: 16px; height: 16px;
-    border: 1px solid var(--border);
-    border-top-color: var(--gold);
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-  }
-
-  @keyframes spin { to { transform: rotate(360deg); } }
-
-  /* ── DIVIDER ── */
-  .divider {
-    height: 1px;
-    background: var(--border);
-    margin: 32px 0;
-    position: relative;
-  }
-
-  .divider::after {
-    content: attr(data-label);
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    transform: translate(-50%, -50%);
-    background: var(--paper);
-    padding: 0 12px;
-    font-size: 0.58rem;
-    letter-spacing: 0.15em;
-    text-transform: uppercase;
-    color: var(--mist);
-  }
-
-  /* ── STATS ROW ── */
-  .stats-row {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 1px;
-    background: var(--border);
-    border: 1px solid var(--border);
-    margin-bottom: 36px;
-  }
-
-  .stat-box {
-    background: var(--card);
-    padding: 24px 28px;
-  }
-
-  .stat-box .val {
-    font-family: 'Cormorant Garamond', serif;
-    font-size: 2.2rem;
-    font-weight: 300;
-    color: var(--gold);
-    line-height: 1;
-    margin-bottom: 6px;
-  }
-
-  .stat-box .lbl {
-    font-size: 0.58rem;
-    letter-spacing: 0.15em;
-    text-transform: uppercase;
-    color: var(--mist);
-  }
-
-  /* ── MODAL ── */
-  .modal-overlay {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(14,12,10,0.7);
-    z-index: 200;
-    align-items: center;
-    justify-content: center;
-    backdrop-filter: blur(2px);
-  }
-
-  .modal-overlay.open { display: flex; }
-
-  .modal {
-    background: var(--paper);
-    border: 1px solid var(--border);
-    padding: 40px;
-    max-width: 500px;
-    width: 90%;
-    animation: fadeUp 0.25s ease both;
-  }
-
-  .modal h3 {
-    font-family: 'Cormorant Garamond', serif;
-    font-size: 1.6rem;
-    font-weight: 300;
-    margin-bottom: 20px;
-  }
-
-  /* ── RESPONSIVE ── */
-  @media (max-width: 768px) {
-    .topbar { padding: 16px 20px; }
-    .hero { grid-template-columns: 1fr; padding: 40px 20px; }
-    .section { padding: 32px 20px; }
-    .stats-row { grid-template-columns: repeat(2, 1fr); }
-    .hero-text h1 { font-size: 2.8rem; }
-    .nav-links { gap: 4px; }
-    .nav-btn { padding: 6px 10px; font-size: 0.58rem; }
-  }
-</style>
-</head>
-<body>
-<div class="app">
-
-  <!-- TOPBAR -->
-  <header class="topbar">
-    <div class="logo">Table<span>One</span></div>
-    <nav class="nav-links" id="nav">
-      <button class="nav-btn" onclick="showSection('home')">Home</button>
-      <button class="nav-btn" id="nav-restaurants" onclick="showSection('restaurants')" style="display:none">Restaurants</button>
-      <button class="nav-btn" id="nav-dishes" onclick="showSection('dishes')" style="display:none">Dishes</button>
-      <button class="nav-btn" id="nav-tables" onclick="showSection('tables')" style="display:none">Tables</button>
-      <button class="nav-btn" id="nav-bookings" onclick="showSection('bookings')" style="display:none">Bookings</button>
-      <button class="nav-btn accent" id="nav-auth" onclick="showSection('auth')">Sign In</button>
-      <button class="nav-btn danger" id="nav-logout" style="display:none" onclick="logout()">Logout</button>
-    </nav>
-    <div class="user-info" id="user-info"></div>
-  </header>
-
-  <main>
-
-    <!-- HOME -->
-    <section class="section active" id="section-home">
-      <div class="hero">
-        <div class="hero-text">
-          <h1>Reserve your<em>perfect table.</em></h1>
-          <p>A curated platform for restaurant bookings. Browse establishments, check availability, and secure your dining experience — all in one place.</p>
-          <div style="display:flex; gap:24px; margin-top:32px;">
-            <div class="hero-stat">
-              <span class="num" id="stat-restaurants">—</span>
-              <span class="label">Restaurants</span>
-            </div>
-            <div class="hero-stat">
-              <span class="num" id="stat-dishes">—</span>
-              <span class="label">Dishes</span>
-            </div>
-          </div>
-        </div>
-        <div class="hero-actions">
-          <div class="notice" id="home-notice" style="display:none"></div>
-          <button class="btn-lg" onclick="showSection('bookings')" id="cta-book" style="display:none">Book a Table →</button>
-          <button class="btn-lg ghost" onclick="showSection('restaurants')">Browse Restaurants</button>
-          <button class="btn-lg ghost" onclick="showSection('dishes')">View Menu</button>
-          <button class="btn-lg ghost" onclick="showSection('auth')" id="cta-signin">Sign In to Book</button>
-        </div>
-      </div>
-    </section>
-
-    <!-- AUTH -->
-    <section class="section" id="section-auth">
-      <div style="max-width:480px; margin:0 auto;">
-        <div class="auth-panel">
-          <h2>Welcome back.</h2>
-          <p class="subtitle">Sign in to manage bookings and more.</p>
-          <div class="auth-toggle">
-            <button class="active" id="tab-login" onclick="switchAuthTab('login')">Login</button>
-            <button id="tab-register" onclick="switchAuthTab('register')">Register</button>
-          </div>
-          <div id="auth-notice"></div>
-
-          <!-- LOGIN FORM -->
-          <div id="form-login">
-            <div class="form-grid">
-              <div class="form-group">
-                <label>Email Address</label>
-                <input type="email" id="login-email" placeholder="you@example.com">
-              </div>
-              <div class="form-group">
-                <label>Password</label>
-                <input type="password" id="login-password" placeholder="••••••••">
-              </div>
-              <div class="form-actions">
-                <button class="btn-lg" onclick="doLogin()">Sign In →</button>
-              </div>
-            </div>
-          </div>
-
-          <!-- REGISTER FORM -->
-          <div id="form-register" style="display:none">
-            <div class="form-grid">
-              <div class="form-group">
-                <label>Full Name</label>
-                <input type="text" id="reg-name" placeholder="Your name">
-              </div>
-              <div class="form-group">
-                <label>Email Address</label>
-                <input type="email" id="reg-email" placeholder="you@example.com">
-              </div>
-              <div class="form-group">
-                <label>Password</label>
-                <input type="password" id="reg-password" placeholder="••••••••">
-              </div>
-              <div class="form-group">
-                <label>Role</label>
-                <select id="reg-role">
-                  <option value="customer">Customer</option>
-                  <option value="owner">Owner</option>
-                  <option value="admin">Admin</option>
-                </select>
-              </div>
-              <div class="form-actions">
-                <button class="btn-lg" onclick="doRegister()">Create Account →</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- RESTAURANTS -->
-    <section class="section" id="section-restaurants">
-      <div class="section-header">
-        <h2>Restaurants</h2>
-        <span class="tag">Browse All</span>
-        <button class="btn primary" id="btn-add-restaurant" style="display:none; margin-left:auto" onclick="openModal('modal-add-restaurant')">+ Add Restaurant</button>
-      </div>
-      <div id="restaurants-notice"></div>
-      <div id="restaurants-content">
-        <div class="loading"><div class="spinner"></div>Loading restaurants...</div>
-      </div>
-    </section>
-
-    <!-- DISHES -->
-    <section class="section" id="section-dishes">
-      <div class="section-header">
-        <h2>Menu</h2>
-        <span class="tag">All Dishes</span>
-        <button class="btn primary" id="btn-add-dish" style="display:none; margin-left:auto" onclick="openModal('modal-add-dish')">+ Add Dish</button>
-      </div>
-      <div id="dishes-notice"></div>
-      <div id="dishes-content">
-        <div class="loading"><div class="spinner"></div>Loading dishes...</div>
-      </div>
-    </section>
-
-    <!-- TABLES -->
-    <section class="section" id="section-tables">
-      <div class="section-header">
-        <h2>Tables</h2>
-        <span class="tag">Management</span>
-        <button class="btn primary" id="btn-add-table" style="display:none; margin-left:auto" onclick="openModal('modal-add-table')">+ Add Table</button>
-      </div>
-      <div id="tables-notice"></div>
-      <div id="tables-content">
-        <div class="loading"><div class="spinner"></div>Loading tables...</div>
-      </div>
-    </section>
-
-    <!-- BOOKINGS -->
-    <section class="section" id="section-bookings">
-      <div class="section-header">
-        <h2>Bookings</h2>
-        <span class="tag">My Reservations</span>
-        <button class="btn primary" style="margin-left:auto" onclick="openModal('modal-create-booking')">+ New Booking</button>
-      </div>
-      <div id="bookings-notice"></div>
-      <div id="bookings-content">
-        <div class="empty">
-          <span class="icon">◇</span>
-          <p>Sign in to view your bookings.</p>
-        </div>
-      </div>
-    </section>
-
-  </main>
-</div>
-
-<!-- ── MODALS ── -->
-
-<!-- Add Restaurant -->
-<div class="modal-overlay" id="modal-add-restaurant">
-  <div class="modal">
-    <h3>New Restaurant</h3>
-    <div id="modal-restaurant-notice"></div>
-    <div class="form-grid">
-      <div class="form-group"><label>Name</label><input type="text" id="r-name" placeholder="Restaurant name"></div>
-      <div class="form-group"><label>Location</label><input type="text" id="r-location" placeholder="City, Area"></div>
-      <div class="form-group"><label>Admin User ID</label><input type="number" id="r-admin" placeholder="User ID"></div>
-      <div class="form-group"><label>Table Count</label><input type="number" id="r-tables" placeholder="4" value="4"></div>
-      <div class="form-actions">
-        <button class="btn-lg" onclick="submitRestaurant()">Create →</button>
-        <button class="btn-lg ghost" onclick="closeModal('modal-add-restaurant')">Cancel</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Add Dish -->
-<div class="modal-overlay" id="modal-add-dish">
-  <div class="modal">
-    <h3>New Dish</h3>
-    <div id="modal-dish-notice"></div>
-    <div class="form-grid">
-      <div class="form-group"><label>Dish Name</label><input type="text" id="d-name" placeholder="e.g. Grilled Sea Bass"></div>
-      <div class="form-group"><label>Price (₹)</label><input type="number" id="d-price" placeholder="0.00" step="0.01"></div>
-      <div class="form-group form-row"><label>Description</label><input type="text" id="d-desc" placeholder="Optional description"></div>
-      <div class="form-actions">
-        <button class="btn-lg" onclick="submitDish()">Add Dish →</button>
-        <button class="btn-lg ghost" onclick="closeModal('modal-add-dish')">Cancel</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Add Table -->
-<div class="modal-overlay" id="modal-add-table">
-  <div class="modal">
-    <h3>New Table</h3>
-    <div id="modal-table-notice"></div>
-    <div class="form-grid">
-      <div class="form-group"><label>Restaurant ID</label><input type="number" id="t-restaurant" placeholder="Restaurant ID"></div>
-      <div class="form-group"><label>Table Number</label><input type="number" id="t-number" placeholder="e.g. 5"></div>
-      <div class="form-group"><label>Capacity</label><input type="number" id="t-capacity" placeholder="e.g. 4"></div>
-      <div class="form-actions">
-        <button class="btn-lg" onclick="submitTable()">Add Table →</button>
-        <button class="btn-lg ghost" onclick="closeModal('modal-add-table')">Cancel</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Create Booking -->
-<div class="modal-overlay" id="modal-create-booking">
-  <div class="modal">
-    <h3>Reserve a Table</h3>
-    <div id="modal-booking-notice"></div>
-    <div class="form-grid">
-      <div class="form-group">
-        <label>Restaurant</label>
-        <select id="b-restaurant"><option value="">Select restaurant...</option></select>
-      </div>
-      <div class="form-group">
-        <label>Date & Time</label>
-        <input type="datetime-local" id="b-date">
-      </div>
-      <div class="form-group">
-        <label>Number of Guests</label>
-        <input type="number" id="b-guests" placeholder="2" min="1">
-      </div>
-      <div class="form-actions">
-        <button class="btn-lg" onclick="submitBooking()">Reserve →</button>
-        <button class="btn-lg ghost" onclick="closeModal('modal-create-booking')">Cancel</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<script>
-  const API = 'http://localhost:8000';
-  let token = localStorage.getItem('token') || null;
-  let currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
-
-  // ── UTILS ──
-  const $ = id => document.getElementById(id);
-
-  function authHeaders() {
-    return { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` };
-  }
-
-  function notice(id, msg, type = 'info') {
-    const el = $(id);
-    if (!el) return;
-    el.innerHTML = msg ? `<div class="notice ${type}">${msg}</div>` : '';
-  }
-
-  async function api(method, path, body) {
-    const opts = { method, headers: authHeaders() };
-    if (body) opts.body = JSON.stringify(body);
-    try {
-      const res = await fetch(API + path, opts);
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.detail || `Error ${res.status}`);
-      return data;
-    } catch (e) {
-      throw e;
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TableOne — Restaurant Booking</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Mono:wght@300;400&display=swap"
+    rel="stylesheet">
+  <style>
+    :root {
+      --ink: #0e0c0a;
+      --paper: #f5f0e8;
+      --cream: #ede7d9;
+      --gold: #b8955a;
+      --gold-light: #d4b07a;
+      --rust: #8b3a2a;
+      --mist: #c8c0b0;
+      --card: #faf7f2;
+      --border: #d8d0c0;
     }
-  }
 
-  // ── NAVIGATION ──
-  function showSection(name) {
-    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-    $('section-' + name).classList.add('active');
-    if (name === 'restaurants') loadRestaurants();
-    if (name === 'dishes') loadDishes();
-    if (name === 'tables' && token) loadTables();
-    if (name === 'bookings' && token) loadBookings();
-    if (name === 'bookings') loadRestaurantsForBooking();
-  }
-
-  // ── AUTH STATE ──
-  function updateUI() {
-    const loggedIn = !!token;
-    const role = currentUser?.role;
-
-    $('nav-auth').style.display = loggedIn ? 'none' : '';
-    $('nav-logout').style.display = loggedIn ? '' : 'none';
-    $('nav-restaurants').style.display = '';
-    $('nav-dishes').style.display = '';
-    $('nav-tables').style.display = loggedIn && (role === 'owner' || role === 'admin') ? '' : 'none';
-    $('nav-bookings').style.display = loggedIn ? '' : 'none';
-    $('cta-signin').style.display = loggedIn ? 'none' : '';
-    $('cta-book').style.display = loggedIn ? '' : 'none';
-
-    // Owner-only controls
-    const isOwner = role === 'owner';
-    const isAdminOrOwner = role === 'owner' || role === 'admin';
-    $('btn-add-restaurant').style.display = isOwner ? '' : 'none';
-    $('btn-add-dish').style.display = isOwner ? '' : 'none';
-    $('btn-add-table').style.display = isAdminOrOwner ? '' : 'none';
-
-    if (loggedIn && currentUser) {
-      $('user-info').textContent = `${currentUser.name || currentUser.email} · ${role}`;
-    } else {
-      $('user-info').textContent = '';
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
     }
-  }
 
-  // ── AUTH ──
-  function switchAuthTab(tab) {
-    $('form-login').style.display = tab === 'login' ? '' : 'none';
-    $('form-register').style.display = tab === 'register' ? '' : 'none';
-    $('tab-login').classList.toggle('active', tab === 'login');
-    $('tab-register').classList.toggle('active', tab === 'register');
-    notice('auth-notice', '');
-  }
-
-  async function doLogin() {
-    const email = $('login-email').value.trim();
-    const password = $('login-password').value;
-    if (!email || !password) return notice('auth-notice', 'Please fill in all fields.', 'error');
-    try {
-      const data = await api('POST', '/auth/login', { email, password });
-      token = data.access_token;
-      localStorage.setItem('token', token);
-      // Decode JWT payload to get role (no sensitive use, just display)
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      currentUser = { id: payload.sub, role: payload.role, email };
-      localStorage.setItem('currentUser', JSON.stringify(currentUser));
-      updateUI();
-      notice('auth-notice', 'Signed in successfully.', 'success');
-      setTimeout(() => showSection('home'), 800);
-    } catch (e) {
-      notice('auth-notice', e.message, 'error');
+    body {
+      font-family: 'DM Mono', monospace;
+      background: var(--paper);
+      color: var(--ink);
+      min-height: 100vh;
+      overflow-x: hidden;
     }
-  }
 
-  async function doRegister() {
-    const name = $('reg-name').value.trim();
-    const email = $('reg-email').value.trim();
-    const password = $('reg-password').value;
-    const role = $('reg-role').value;
-    if (!name || !email || !password) return notice('auth-notice', 'Please fill in all fields.', 'error');
-    try {
-      await api('POST', '/auth/register', { name, email, password, role });
-      notice('auth-notice', 'Account created! You can now sign in.', 'success');
-      switchAuthTab('login');
-    } catch (e) {
-      notice('auth-notice', e.message, 'error');
+    /* Grain overlay */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 9999;
+      opacity: 0.5;
     }
-  }
 
-  function logout() {
-    token = null; currentUser = null;
-    localStorage.removeItem('token');
-    localStorage.removeItem('currentUser');
-    updateUI();
-    showSection('home');
-  }
+    /* ── LAYOUT ── */
+    .app {
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
 
-  // ── RESTAURANTS ──
-  async function loadRestaurants() {
-    $('restaurants-content').innerHTML = '<div class="loading"><div class="spinner"></div>Loading...</div>';
-    try {
-      const data = await api('GET', '/restaurants');
-      $('stat-restaurants').textContent = data.length;
-      if (!data.length) {
-        $('restaurants-content').innerHTML = `<div class="empty"><span class="icon">◇</span><p>No restaurants found.</p></div>`;
-        return;
+    /* ── TOPBAR ── */
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px 40px;
+      border-bottom: 1px solid var(--border);
+      background: var(--paper);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .logo {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 1.6rem;
+      font-weight: 300;
+      letter-spacing: 0.15em;
+      color: var(--ink);
+    }
+
+    .logo span {
+      color: var(--gold);
+      font-style: italic;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .nav-btn {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.65rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      padding: 8px 16px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--ink);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .nav-btn:hover,
+    .nav-btn.active {
+      background: var(--ink);
+      color: var(--paper);
+      border-color: var(--ink);
+    }
+
+    .nav-btn.accent {
+      background: var(--gold);
+      color: var(--paper);
+      border-color: var(--gold);
+    }
+
+    .nav-btn.accent:hover {
+      background: var(--gold-light);
+    }
+
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 0.65rem;
+      letter-spacing: 0.1em;
+      color: var(--mist);
+    }
+
+    /* ── MAIN ── */
+    main {
+      flex: 1;
+      padding: 0;
+    }
+
+    /* ── HERO ── */
+    .hero {
+      padding: 80px 40px 60px;
+      border-bottom: 1px solid var(--border);
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 60px;
+      align-items: end;
+    }
+
+    .hero-text h1 {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: clamp(3rem, 6vw, 5.5rem);
+      font-weight: 300;
+      line-height: 1.05;
+      letter-spacing: -0.01em;
+      margin-bottom: 20px;
+    }
+
+    .hero-text h1 em {
+      font-style: italic;
+      color: var(--gold);
+      display: block;
+    }
+
+    .hero-text p {
+      font-size: 0.7rem;
+      letter-spacing: 0.1em;
+      color: var(--mist);
+      line-height: 1.8;
+      max-width: 340px;
+    }
+
+    .hero-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      align-self: center;
+    }
+
+    .hero-stat {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      padding: 20px 0;
+      border-top: 1px solid var(--border);
+    }
+
+    .hero-stat .num {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 2.5rem;
+      font-weight: 300;
+      color: var(--gold);
+    }
+
+    .hero-stat .label {
+      font-size: 0.6rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--mist);
+    }
+
+    /* ── SECTIONS ── */
+    .section {
+      display: none;
+      padding: 48px 40px;
+      animation: fadeUp 0.35s ease both;
+    }
+
+    .section.active {
+      display: block;
+    }
+
+    @keyframes fadeUp {
+      from {
+        opacity: 0;
+        transform: translateY(16px);
       }
-      $('restaurants-content').innerHTML = `<div class="cards-grid">${data.map(r => `
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .section-header {
+      display: flex;
+      align-items: baseline;
+      gap: 16px;
+      margin-bottom: 36px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .section-header h2 {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 2rem;
+      font-weight: 300;
+      letter-spacing: 0.03em;
+    }
+
+    .section-header .tag {
+      font-size: 0.6rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--mist);
+      padding: 4px 8px;
+      border: 1px solid var(--border);
+    }
+
+    /* ── CARDS GRID ── */
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 1px;
+      background: var(--border);
+      border: 1px solid var(--border);
+    }
+
+    .card {
+      background: var(--card);
+      padding: 28px;
+      transition: background 0.2s;
+      position: relative;
+    }
+
+    .card:hover {
+      background: var(--cream);
+    }
+
+    .card-label {
+      font-size: 0.58rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--mist);
+      margin-bottom: 8px;
+    }
+
+    .card-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 1.4rem;
+      font-weight: 400;
+      margin-bottom: 6px;
+    }
+
+    .card-subtitle {
+      font-size: 0.65rem;
+      color: var(--mist);
+      letter-spacing: 0.05em;
+      margin-bottom: 16px;
+      line-height: 1.6;
+    }
+
+    .card-meta {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .pill {
+      font-size: 0.58rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 4px 10px;
+      border: 1px solid var(--border);
+      color: var(--ink);
+    }
+
+    .pill.gold {
+      border-color: var(--gold);
+      color: var(--gold);
+    }
+
+    .pill.rust {
+      border-color: var(--rust);
+      color: var(--rust);
+    }
+
+    .pill.green {
+      border-color: #4a7c59;
+      color: #4a7c59;
+    }
+
+    .card-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 20px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+    }
+
+    .btn {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.6rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      padding: 8px 14px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--ink);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn:hover {
+      background: var(--ink);
+      color: var(--paper);
+      border-color: var(--ink);
+    }
+
+    .btn.primary {
+      background: var(--gold);
+      color: var(--paper);
+      border-color: var(--gold);
+    }
+
+    .btn.primary:hover {
+      background: var(--gold-light);
+    }
+
+    .btn.danger {
+      color: var(--rust);
+      border-color: var(--rust);
+    }
+
+    .btn.danger:hover {
+      background: var(--rust);
+      color: var(--paper);
+    }
+
+    /* ── FORM ── */
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 20px;
+      max-width: 700px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .form-group label {
+      font-size: 0.6rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--mist);
+    }
+
+    .form-group input,
+    .form-group select {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.75rem;
+      padding: 12px 14px;
+      border: 1px solid var(--border);
+      background: var(--card);
+      color: var(--ink);
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus {
+      border-color: var(--gold);
+    }
+
+    .form-group select option {
+      background: var(--card);
+    }
+
+    .form-row {
+      grid-column: 1 / -1;
+    }
+
+    .form-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 8px;
+      grid-column: 1 / -1;
+    }
+
+    .btn-lg {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.65rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      padding: 14px 28px;
+      border: 1px solid var(--border);
+      background: var(--ink);
+      color: var(--paper);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-lg:hover {
+      background: var(--gold);
+      border-color: var(--gold);
+    }
+
+    .btn-lg.ghost {
+      background: transparent;
+      color: var(--ink);
+    }
+
+    .btn-lg.ghost:hover {
+      background: var(--ink);
+      color: var(--paper);
+    }
+
+    /* ── AUTH PANEL ── */
+    .auth-panel {
+      max-width: 480px;
+      margin: 0 auto;
+      padding: 48px 40px;
+      background: var(--card);
+      border: 1px solid var(--border);
+    }
+
+    .auth-panel h2 {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 2rem;
+      font-weight: 300;
+      margin-bottom: 6px;
+    }
+
+    .auth-panel .subtitle {
+      font-size: 0.65rem;
+      color: var(--mist);
+      letter-spacing: 0.08em;
+      margin-bottom: 32px;
+    }
+
+    .auth-toggle {
+      display: flex;
+      gap: 0;
+      margin-bottom: 28px;
+      border: 1px solid var(--border);
+    }
+
+    .auth-toggle button {
+      flex: 1;
+      padding: 10px;
+      font-family: 'DM Mono', monospace;
+      font-size: 0.6rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      border: none;
+      background: transparent;
+      color: var(--mist);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .auth-toggle button.active {
+      background: var(--ink);
+      color: var(--paper);
+    }
+
+    /* ── NOTICE ── */
+    .notice {
+      padding: 14px 18px;
+      font-size: 0.65rem;
+      letter-spacing: 0.06em;
+      line-height: 1.6;
+      border-left: 3px solid var(--gold);
+      background: var(--cream);
+      margin-bottom: 24px;
+    }
+
+    .notice.error {
+      border-left-color: var(--rust);
+      color: var(--rust);
+    }
+
+    .notice.success {
+      border-left-color: #4a7c59;
+      color: #4a7c59;
+    }
+
+    /* ── TABLE ── */
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.68rem;
+    }
+
+    .data-table th {
+      text-align: left;
+      padding: 10px 16px;
+      font-size: 0.58rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--mist);
+      border-bottom: 1px solid var(--border);
+      font-weight: 400;
+    }
+
+    .data-table td {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+
+    .data-table tr:hover td {
+      background: var(--cream);
+    }
+
+    /* ── EMPTY STATE ── */
+    .empty {
+      padding: 60px 40px;
+      text-align: center;
+      color: var(--mist);
+    }
+
+    .empty .icon {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 3rem;
+      font-weight: 300;
+      display: block;
+      margin-bottom: 12px;
+      color: var(--border);
+    }
+
+    .empty p {
+      font-size: 0.65rem;
+      letter-spacing: 0.1em;
+    }
+
+    /* ── LOADING ── */
+    .loading {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 24px;
+      font-size: 0.62rem;
+      letter-spacing: 0.12em;
+      color: var(--mist);
+    }
+
+    .spinner {
+      width: 16px;
+      height: 16px;
+      border: 1px solid var(--border);
+      border-top-color: var(--gold);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    /* ── DIVIDER ── */
+    .divider {
+      height: 1px;
+      background: var(--border);
+      margin: 32px 0;
+      position: relative;
+    }
+
+    .divider::after {
+      content: attr(data-label);
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      background: var(--paper);
+      padding: 0 12px;
+      font-size: 0.58rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--mist);
+    }
+
+    /* ── STATS ROW ── */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1px;
+      background: var(--border);
+      border: 1px solid var(--border);
+      margin-bottom: 36px;
+    }
+
+    .stat-box {
+      background: var(--card);
+      padding: 24px 28px;
+    }
+
+    .stat-box .val {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 2.2rem;
+      font-weight: 300;
+      color: var(--gold);
+      line-height: 1;
+      margin-bottom: 6px;
+    }
+
+    .stat-box .lbl {
+      font-size: 0.58rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--mist);
+    }
+
+    /* ── MODAL ── */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(14, 12, 10, 0.7);
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(2px);
+    }
+
+    .modal-overlay.open {
+      display: flex;
+    }
+
+    .modal {
+      background: var(--paper);
+      border: 1px solid var(--border);
+      padding: 40px;
+      max-width: 500px;
+      width: 90%;
+      animation: fadeUp 0.25s ease both;
+    }
+
+    .modal h3 {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 1.6rem;
+      font-weight: 300;
+      margin-bottom: 20px;
+    }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 768px) {
+      .topbar {
+        padding: 16px 20px;
+      }
+
+      .hero {
+        grid-template-columns: 1fr;
+        padding: 40px 20px;
+      }
+
+      .section {
+        padding: 32px 20px;
+      }
+
+      .stats-row {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .hero-text h1 {
+        font-size: 2.8rem;
+      }
+
+      .nav-links {
+        gap: 4px;
+      }
+
+      .nav-btn {
+        padding: 6px 10px;
+        font-size: 0.58rem;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="app">
+
+    <!-- TOPBAR -->
+    <header class="topbar">
+      <div class="logo">Table<span>One</span></div>
+      <nav class="nav-links" id="nav">
+        <button class="nav-btn" onclick="showSection('home')">Home</button>
+        <button class="nav-btn" id="nav-restaurants" onclick="showSection('restaurants')"
+          style="display:none">Restaurants</button>
+        <button class="nav-btn" id="nav-dishes" onclick="showSection('dishes')" style="display:none">Dishes</button>
+        <button class="nav-btn" id="nav-tables" onclick="showSection('tables')" style="display:none">Tables</button>
+        <button class="nav-btn" id="nav-bookings" onclick="showSection('bookings')"
+          style="display:none">Bookings</button>
+        <button class="nav-btn accent" id="nav-auth" onclick="showSection('auth')">Sign In</button>
+        <button class="nav-btn danger" id="nav-logout" style="display:none" onclick="logout()">Logout</button>
+      </nav>
+      <div class="user-info" id="user-info"></div>
+    </header>
+
+    <main>
+
+      <!-- HOME -->
+      <section class="section active" id="section-home">
+        <div class="hero">
+          <div class="hero-text">
+            <h1>Reserve your<em>perfect table.</em></h1>
+            <p>A curated platform for restaurant bookings. Browse establishments, check availability, and secure your
+              dining experience — all in one place.</p>
+            <div style="display:flex; gap:24px; margin-top:32px;">
+              <div class="hero-stat">
+                <span class="num" id="stat-restaurants">—</span>
+                <span class="label">Restaurants</span>
+              </div>
+              <div class="hero-stat">
+                <span class="num" id="stat-dishes">—</span>
+                <span class="label">Dishes</span>
+              </div>
+            </div>
+          </div>
+          <div class="hero-actions">
+            <div class="notice" id="home-notice" style="display:none"></div>
+            <button class="btn-lg" onclick="showSection('bookings')" id="cta-book" style="display:none">Book a Table
+              →</button>
+            <button class="btn-lg ghost" onclick="showSection('restaurants')">Browse Restaurants</button>
+            <button class="btn-lg ghost" onclick="showSection('dishes')">View Menu</button>
+            <button class="btn-lg ghost" onclick="showSection('auth')" id="cta-signin">Sign In to Book</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- AUTH -->
+      <section class="section" id="section-auth">
+        <div style="max-width:480px; margin:0 auto;">
+          <div class="auth-panel">
+            <h2>Welcome back.</h2>
+            <p class="subtitle">Sign in to manage bookings and more.</p>
+            <div class="auth-toggle">
+              <button class="active" id="tab-login" onclick="switchAuthTab('login')">Login</button>
+              <button id="tab-register" onclick="switchAuthTab('register')">Register</button>
+            </div>
+            <div id="auth-notice"></div>
+
+            <!-- LOGIN FORM -->
+            <div id="form-login">
+              <div class="form-grid">
+                <div class="form-group">
+                  <label>Email Address</label>
+                  <input type="email" id="login-email" placeholder="you@example.com">
+                </div>
+                <div class="form-group">
+                  <label>Password</label>
+                  <input type="password" id="login-password" placeholder="••••••••">
+                </div>
+                <div class="form-actions">
+                  <button class="btn-lg" onclick="doLogin()">Sign In →</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- REGISTER FORM -->
+            <div id="form-register" style="display:none">
+              <div class="form-grid">
+                <div class="form-group">
+                  <label>Full Name</label>
+                  <input type="text" id="reg-name" placeholder="Your name">
+                </div>
+                <div class="form-group">
+                  <label>Email Address</label>
+                  <input type="email" id="reg-email" placeholder="you@example.com">
+                </div>
+                <div class="form-group">
+                  <label>Password</label>
+                  <input type="password" id="reg-password" placeholder="••••••••">
+                </div>
+                <div class="form-group">
+                  <label>Role</label>
+                  <select id="reg-role">
+                    <option value="customer">Customer</option>
+                    <option value="owner">Owner</option>
+                    <option value="admin">Admin</option>
+                  </select>
+                </div>
+                <div class="form-actions">
+                  <button class="btn-lg" onclick="doRegister()">Create Account →</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- RESTAURANTS -->
+      <section class="section" id="section-restaurants">
+        <div class="section-header">
+          <h2>Restaurants</h2>
+          <span class="tag">Browse All</span>
+          <button class="btn primary" id="btn-add-restaurant" style="display:none; margin-left:auto"
+            onclick="openModal('modal-add-restaurant')">+ Add Restaurant</button>
+        </div>
+        <div id="restaurants-notice"></div>
+        <div id="restaurants-content">
+          <div class="loading">
+            <div class="spinner"></div>Loading restaurants...
+          </div>
+        </div>
+      </section>
+
+      <!-- DISHES -->
+      <section class="section" id="section-dishes">
+        <div class="section-header">
+          <h2>Menu</h2>
+          <span class="tag">All Dishes</span>
+          <button class="btn primary" id="btn-add-dish" style="display:none; margin-left:auto"
+            onclick="openModal('modal-add-dish')">+ Add Dish</button>
+        </div>
+        <div id="dishes-notice"></div>
+        <div id="dishes-content">
+          <div class="loading">
+            <div class="spinner"></div>Loading dishes...
+          </div>
+        </div>
+      </section>
+
+      <!-- TABLES -->
+      <section class="section" id="section-tables">
+        <div class="section-header">
+          <h2>Tables</h2>
+          <span class="tag">Management</span>
+          <button class="btn primary" id="btn-add-table" style="display:none; margin-left:auto"
+            onclick="openModal('modal-add-table')">+ Add Table</button>
+        </div>
+        <div id="tables-notice"></div>
+        <div id="tables-content">
+          <div class="loading">
+            <div class="spinner"></div>Loading tables...
+          </div>
+        </div>
+      </section>
+
+      <!-- BOOKINGS -->
+      <section class="section" id="section-bookings">
+        <div class="section-header">
+          <h2>Bookings</h2>
+          <span class="tag">My Reservations</span>
+          <button class="btn primary" style="margin-left:auto" onclick="openModal('modal-create-booking')">+ New
+            Booking</button>
+        </div>
+        <div id="bookings-notice"></div>
+        <div id="bookings-content">
+          <div class="empty">
+            <span class="icon">◇</span>
+            <p>Sign in to view your bookings.</p>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- ── MODALS ── -->
+
+  <!-- Add Restaurant -->
+  <div class="modal-overlay" id="modal-add-restaurant">
+    <div class="modal">
+      <h3>New Restaurant</h3>
+      <div id="modal-restaurant-notice"></div>
+      <div class="form-grid">
+        <div class="form-group"><label>Name</label><input type="text" id="r-name" placeholder="Restaurant name"></div>
+        <div class="form-group"><label>Location</label><input type="text" id="r-location" placeholder="City, Area">
+        </div>
+        <div class="form-group"><label>Admin User ID</label><input type="number" id="r-admin" placeholder="User ID">
+        </div>
+        <div class="form-group"><label>Table Count</label><input type="number" id="r-tables" placeholder="4" value="4">
+        </div>
+        <div class="form-actions">
+          <button class="btn-lg" onclick="submitRestaurant()">Create →</button>
+          <button class="btn-lg ghost" onclick="closeModal('modal-add-restaurant')">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Dish -->
+  <div class="modal-overlay" id="modal-add-dish">
+    <div class="modal">
+      <h3>New Dish</h3>
+      <div id="modal-dish-notice"></div>
+      <div class="form-grid">
+        <div class="form-group"><label>Dish Name</label><input type="text" id="d-name"
+            placeholder="e.g. Grilled Sea Bass"></div>
+        <div class="form-group"><label>Price (₹)</label><input type="number" id="d-price" placeholder="0.00"
+            step="0.01"></div>
+        <div class="form-group form-row"><label>Description</label><input type="text" id="d-desc"
+            placeholder="Optional description"></div>
+        <div class="form-actions">
+          <button class="btn-lg" onclick="submitDish()">Add Dish →</button>
+          <button class="btn-lg ghost" onclick="closeModal('modal-add-dish')">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Table -->
+  <div class="modal-overlay" id="modal-add-table">
+    <div class="modal">
+      <h3>New Table</h3>
+      <div id="modal-table-notice"></div>
+      <div class="form-grid">
+        <div class="form-group"><label>Restaurant ID</label><input type="number" id="t-restaurant"
+            placeholder="Restaurant ID"></div>
+        <div class="form-group"><label>Table Number</label><input type="number" id="t-number" placeholder="e.g. 5">
+        </div>
+        <div class="form-group"><label>Capacity</label><input type="number" id="t-capacity" placeholder="e.g. 4"></div>
+        <div class="form-actions">
+          <button class="btn-lg" onclick="submitTable()">Add Table →</button>
+          <button class="btn-lg ghost" onclick="closeModal('modal-add-table')">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Create Booking -->
+  <div class="modal-overlay" id="modal-create-booking">
+    <div class="modal">
+      <h3>Reserve a Table</h3>
+      <div id="modal-booking-notice"></div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Restaurant</label>
+          <select id="b-restaurant">
+            <option value="">Select restaurant...</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Date & Time</label>
+          <input type="datetime-local" id="b-date">
+        </div>
+        <div class="form-group">
+          <label>Number of Guests</label>
+          <input type="number" id="b-guests" placeholder="2" min="1">
+        </div>
+        <div class="form-actions">
+          <button class="btn-lg" onclick="submitBooking()">Reserve →</button>
+          <button class="btn-lg ghost" onclick="closeModal('modal-create-booking')">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API = 'http://localhost:8000';
+    let token = localStorage.getItem('token') || null;
+    let currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
+
+    // ── UTILS ──
+    const $ = id => document.getElementById(id);
+
+    function authHeaders() {
+      return { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` };
+    }
+
+    function notice(id, msg, type = 'info') {
+      const el = $(id);
+      if (!el) return;
+      el.innerHTML = msg ? `<div class="notice ${type}">${msg}</div>` : '';
+    }
+
+    async function api(method, path, body) {
+      const opts = { method, headers: authHeaders() };
+      if (body) opts.body = JSON.stringify(body);
+      try {
+        const res = await fetch(API + path, opts);
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.detail || `Error ${res.status}`);
+        return data;
+      } catch (e) {
+        throw e;
+      }
+    }
+
+    // ── NAVIGATION ──
+    function showSection(name) {
+      document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+      $('section-' + name).classList.add('active');
+      if (name === 'restaurants') loadRestaurants();
+      if (name === 'dishes') loadDishes();
+      if (name === 'tables' && token) loadTables();
+      if (name === 'bookings' && token) loadBookings();
+      if (name === 'bookings') loadRestaurantsForBooking();
+    }
+
+    // ── AUTH STATE ──
+    function updateUI() {
+      const loggedIn = !!token;
+      const role = currentUser?.role;
+
+      $('nav-auth').style.display = loggedIn ? 'none' : '';
+      $('nav-logout').style.display = loggedIn ? '' : 'none';
+      $('nav-restaurants').style.display = '';
+      $('nav-dishes').style.display = '';
+      $('nav-tables').style.display = loggedIn && (role === 'owner' || role === 'admin') ? '' : 'none';
+      $('nav-bookings').style.display = loggedIn ? '' : 'none';
+      $('cta-signin').style.display = loggedIn ? 'none' : '';
+      $('cta-book').style.display = loggedIn ? '' : 'none';
+
+      // Owner-only controls
+      const isOwner = role === 'owner';
+      const isAdminOrOwner = role === 'owner' || role === 'admin';
+      $('btn-add-restaurant').style.display = isOwner ? '' : 'none';
+      $('btn-add-dish').style.display = isOwner ? '' : 'none';
+      $('btn-add-table').style.display = isAdminOrOwner ? '' : 'none';
+
+      if (loggedIn && currentUser) {
+        $('user-info').textContent = `${currentUser.name || currentUser.email} · ${role}`;
+      } else {
+        $('user-info').textContent = '';
+      }
+    }
+
+    // ── AUTH ──
+    function switchAuthTab(tab) {
+      $('form-login').style.display = tab === 'login' ? '' : 'none';
+      $('form-register').style.display = tab === 'register' ? '' : 'none';
+      $('tab-login').classList.toggle('active', tab === 'login');
+      $('tab-register').classList.toggle('active', tab === 'register');
+      notice('auth-notice', '');
+    }
+
+    async function doLogin() {
+      const email = $('login-email').value.trim();
+      const password = $('login-password').value;
+      if (!email || !password) return notice('auth-notice', 'Please fill in all fields.', 'error');
+      try {
+        const data = await api('POST', '/auth/login', { email, password });
+        token = data.access_token;
+        localStorage.setItem('token', token);
+        // Decode JWT payload to get role (no sensitive use, just display)
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        currentUser = { id: payload.sub, role: payload.role, email };
+        localStorage.setItem('currentUser', JSON.stringify(currentUser));
+        updateUI();
+        notice('auth-notice', 'Signed in successfully.', 'success');
+        setTimeout(() => showSection('home'), 800);
+      } catch (e) {
+        notice('auth-notice', e.message, 'error');
+      }
+    }
+
+    async function doRegister() {
+      const name = $('reg-name').value.trim();
+      const email = $('reg-email').value.trim();
+      const password = $('reg-password').value;
+      const role = $('reg-role').value;
+      if (!name || !email || !password) return notice('auth-notice', 'Please fill in all fields.', 'error');
+      try {
+        await api('POST', '/auth/register', { name, email, password, role });
+        notice('auth-notice', 'Account created! You can now sign in.', 'success');
+        switchAuthTab('login');
+      } catch (e) {
+        notice('auth-notice', e.message, 'error');
+      }
+    }
+
+    function logout() {
+      token = null; currentUser = null;
+      localStorage.removeItem('token');
+      localStorage.removeItem('currentUser');
+      updateUI();
+      showSection('home');
+    }
+
+    // ── RESTAURANTS ──
+    async function loadRestaurants() {
+      $('restaurants-content').innerHTML = '<div class="loading"><div class="spinner"></div>Loading...</div>';
+      try {
+        const data = await api('GET', '/restaurants');
+        $('stat-restaurants').textContent = data.length;
+        if (!data.length) {
+          $('restaurants-content').innerHTML = `<div class="empty"><span class="icon">◇</span><p>No restaurants found.</p></div>`;
+          return;
+        }
+        $('restaurants-content').innerHTML = `<div class="cards-grid">${data.map(r => `
         <div class="card">
           <div class="card-label">Restaurant #${r.id}</div>
           <div class="card-title">${r.name}</div>
@@ -1004,45 +1123,45 @@
             <button class="btn danger" onclick="deleteRestaurant(${r.id})">Delete</button>
           </div>` : ''}
         </div>`).join('')}</div>`;
-    } catch (e) {
-      $('restaurants-content').innerHTML = `<div class="notice error">${e.message}</div>`;
-    }
-  }
-
-  async function submitRestaurant() {
-    const body = {
-      name: $('r-name').value.trim(),
-      location: $('r-location').value.trim(),
-      admin_id: parseInt($('r-admin').value),
-      table_count: parseInt($('r-tables').value) || 4
-    };
-    if (!body.name || !body.location || !body.admin_id) return notice('modal-restaurant-notice', 'Fill all required fields.', 'error');
-    try {
-      await api('POST', '/restaurants', body);
-      closeModal('modal-add-restaurant');
-      loadRestaurants();
-    } catch (e) { notice('modal-restaurant-notice', e.message, 'error'); }
-  }
-
-  async function deleteRestaurant(id) {
-    if (!confirm('Delete this restaurant?')) return;
-    try {
-      await api('DELETE', `/restaurants/${id}`);
-      loadRestaurants();
-    } catch (e) { notice('restaurants-notice', e.message, 'error'); }
-  }
-
-  // ── DISHES ──
-  async function loadDishes() {
-    $('dishes-content').innerHTML = '<div class="loading"><div class="spinner"></div>Loading...</div>';
-    try {
-      const data = await api('GET', '/dishes');
-      $('stat-dishes').textContent = Array.isArray(data) ? data.length : '—';
-      if (!Array.isArray(data) || !data.length) {
-        $('dishes-content').innerHTML = `<div class="empty"><span class="icon">◇</span><p>No dishes on the menu yet.</p></div>`;
-        return;
+      } catch (e) {
+        $('restaurants-content').innerHTML = `<div class="notice error">${e.message}</div>`;
       }
-      $('dishes-content').innerHTML = `<div class="cards-grid">${data.map(d => `
+    }
+
+    async function submitRestaurant() {
+      const body = {
+        name: $('r-name').value.trim(),
+        location: $('r-location').value.trim(),
+        admin_id: parseInt($('r-admin').value),
+        table_count: parseInt($('r-tables').value) || 4
+      };
+      if (!body.name || !body.location || !body.admin_id) return notice('modal-restaurant-notice', 'Fill all required fields.', 'error');
+      try {
+        await api('POST', '/restaurants', body);
+        closeModal('modal-add-restaurant');
+        loadRestaurants();
+      } catch (e) { notice('modal-restaurant-notice', e.message, 'error'); }
+    }
+
+    async function deleteRestaurant(id) {
+      if (!confirm('Delete this restaurant?')) return;
+      try {
+        await api('DELETE', `/restaurants/${id}`);
+        loadRestaurants();
+      } catch (e) { notice('restaurants-notice', e.message, 'error'); }
+    }
+
+    // ── DISHES ──
+    async function loadDishes() {
+      $('dishes-content').innerHTML = '<div class="loading"><div class="spinner"></div>Loading...</div>';
+      try {
+        const data = await api('GET', '/dishes');
+        $('stat-dishes').textContent = Array.isArray(data) ? data.length : '—';
+        if (!Array.isArray(data) || !data.length) {
+          $('dishes-content').innerHTML = `<div class="empty"><span class="icon">◇</span><p>No dishes on the menu yet.</p></div>`;
+          return;
+        }
+        $('dishes-content').innerHTML = `<div class="cards-grid">${data.map(d => `
         <div class="card">
           <div class="card-label">Dish #${d.id}</div>
           <div class="card-title">${d.name}</div>
@@ -1055,43 +1174,43 @@
             <button class="btn danger" onclick="deleteDish(${d.id})">Delete</button>
           </div>` : ''}
         </div>`).join('')}</div>`;
-    } catch (e) {
-      $('dishes-content').innerHTML = `<div class="notice error">${e.message}</div>`;
-    }
-  }
-
-  async function submitDish() {
-    const body = {
-      name: $('d-name').value.trim(),
-      price: parseFloat($('d-price').value),
-      description: $('d-desc').value.trim() || null
-    };
-    if (!body.name || isNaN(body.price)) return notice('modal-dish-notice', 'Fill all required fields.', 'error');
-    try {
-      await api('POST', '/dishes', body);
-      closeModal('modal-add-dish');
-      loadDishes();
-    } catch (e) { notice('modal-dish-notice', e.message, 'error'); }
-  }
-
-  async function deleteDish(id) {
-    if (!confirm('Delete this dish?')) return;
-    try {
-      await api('DELETE', `/dishes/${id}`);
-      loadDishes();
-    } catch (e) { notice('dishes-notice', e.message, 'error'); }
-  }
-
-  // ── TABLES ──
-  async function loadTables() {
-    $('tables-content').innerHTML = '<div class="loading"><div class="spinner"></div>Loading...</div>';
-    try {
-      const data = await api('GET', '/tables');
-      if (!data.length) {
-        $('tables-content').innerHTML = `<div class="empty"><span class="icon">◇</span><p>No tables found.</p></div>`;
-        return;
+      } catch (e) {
+        $('dishes-content').innerHTML = `<div class="notice error">${e.message}</div>`;
       }
-      $('tables-content').innerHTML = `
+    }
+
+    async function submitDish() {
+      const body = {
+        name: $('d-name').value.trim(),
+        price: parseFloat($('d-price').value),
+        description: $('d-desc').value.trim() || null
+      };
+      if (!body.name || isNaN(body.price)) return notice('modal-dish-notice', 'Fill all required fields.', 'error');
+      try {
+        await api('POST', '/dishes', body);
+        closeModal('modal-add-dish');
+        loadDishes();
+      } catch (e) { notice('modal-dish-notice', e.message, 'error'); }
+    }
+
+    async function deleteDish(id) {
+      if (!confirm('Delete this dish?')) return;
+      try {
+        await api('DELETE', `/dishes/${id}`);
+        loadDishes();
+      } catch (e) { notice('dishes-notice', e.message, 'error'); }
+    }
+
+    // ── TABLES ──
+    async function loadTables() {
+      $('tables-content').innerHTML = '<div class="loading"><div class="spinner"></div>Loading...</div>';
+      try {
+        const data = await api('GET', '/tables');
+        if (!data.length) {
+          $('tables-content').innerHTML = `<div class="empty"><span class="icon">◇</span><p>No tables found.</p></div>`;
+          return;
+        }
+        $('tables-content').innerHTML = `
         <table class="data-table">
           <thead><tr>
             <th>ID</th><th>Restaurant</th><th>Table #</th><th>Capacity</th><th>Status</th>
@@ -1109,99 +1228,122 @@
             </tr>`).join('')}
           </tbody>
         </table>`;
-    } catch (e) {
-      $('tables-content').innerHTML = `<div class="notice error">${e.message}</div>`;
+      } catch (e) {
+        $('tables-content').innerHTML = `<div class="notice error">${e.message}</div>`;
+      }
     }
-  }
 
-  async function submitTable() {
-    const body = {
-      restaurant_id: parseInt($('t-restaurant').value),
-      number: parseInt($('t-number').value),
-      capacity: parseInt($('t-capacity').value),
-      booking_status: false
-    };
-    if (!body.restaurant_id || !body.number || !body.capacity) return notice('modal-table-notice', 'Fill all required fields.', 'error');
-    try {
-      await api('POST', '/tables', body);
-      closeModal('modal-add-table');
-      loadTables();
-    } catch (e) { notice('modal-table-notice', e.message, 'error'); }
-  }
+    async function submitTable() {
+      const body = {
+        restaurant_id: parseInt($('t-restaurant').value),
+        number: parseInt($('t-number').value),
+        capacity: parseInt($('t-capacity').value),
+        booking_status: false
+      };
+      if (!body.restaurant_id || !body.number || !body.capacity) return notice('modal-table-notice', 'Fill all required fields.', 'error');
+      try {
+        await api('POST', '/tables', body);
+        closeModal('modal-add-table');
+        loadTables();
+      } catch (e) { notice('modal-table-notice', e.message, 'error'); }
+    }
 
-  async function deleteTable(id) {
-    if (!confirm('Delete this table?')) return;
-    try {
-      await api('DELETE', `/tables/${id}`);
-      loadTables();
-    } catch (e) { notice('tables-notice', e.message, 'error'); }
-  }
+    async function deleteTable(id) {
+      if (!confirm('Delete this table?')) return;
+      try {
+        await api('DELETE', `/tables/${id}`);
+        loadTables();
+      } catch (e) { notice('tables-notice', e.message, 'error'); }
+    }
 
-  // ── BOOKINGS ──
-  async function loadRestaurantsForBooking() {
-    try {
-      const data = await api('GET', '/restaurants');
-      const sel = $('b-restaurant');
-      sel.innerHTML = '<option value="">Select restaurant...</option>';
-      data.forEach(r => {
-        const o = document.createElement('option');
-        o.value = r.id; o.textContent = `${r.name} — ${r.location}`;
-        sel.appendChild(o);
+    // ── BOOKINGS ──
+    async function loadRestaurantsForBooking() {
+      try {
+        const data = await api('GET', '/restaurants');
+        const sel = $('b-restaurant');
+        sel.innerHTML = '<option value="">Select restaurant...</option>';
+        data.forEach(r => {
+          const o = document.createElement('option');
+          o.value = r.id; o.textContent = `${r.name} — ${r.location}`;
+          sel.appendChild(o);
+        });
+      } catch (e) { }
+    }
+
+    async function loadBookings() {
+      $('bookings-content').innerHTML = '<div class="loading"><div class="spinner"></div>Loading...</div>';
+      try {
+        const data = await api('GET', '/booking/my');
+        if (!data.length) {
+          $('bookings-content').innerHTML = `<div class="empty"><span class="icon">◇</span><p>No bookings yet. Use + New Booking to reserve a table.</p></div>`;
+          return;
+        }
+        $('bookings-content').innerHTML = `
+      <table class="data-table"><thead><tr>
+        <th>ID</th><th>Restaurant</th><th>Table</th><th>Date</th><th>Guests</th><th>Status</th><th></th>
+      </tr></thead><tbody>${data.map(b => `
+        <tr>
+          <td>#${b.id}</td>
+          <td>#${b.restaurant_id}</td>
+          <td>#${b.table_id}</td>
+          <td>${new Date(b.date).toLocaleString()}</td>
+          <td>${b.guests}</td>
+          <td><span class="pill ${b.status ? 'green' : 'rust'}">${b.status ? 'Active' : 'Cancelled'}</span></td>
+          <td>${b.status ? `<button class="btn danger" onclick="cancelBooking(${b.id})">Cancel</button>` : ''}</td>
+        </tr>`).join('')}
+      </tbody></table>`;
+      } catch (e) {
+        $('bookings-content').innerHTML = `<div class="notice error">${e.message}</div>`;
+      }
+    }
+
+    async function cancelBooking(id) {
+      if (!confirm('Cancel this booking?')) return;
+      try {
+        await api('DELETE', `/booking/${id}`);
+        loadBookings();
+      } catch (e) { notice('bookings-notice', e.message, 'error'); }
+    }
+    async function submitBooking() {
+      const restaurant_id = parseInt($('b-restaurant').value);
+      const date = $('b-date').value;
+      const guests = parseInt($('b-guests').value);
+      if (!restaurant_id || !date || !guests) return notice('modal-booking-notice', 'Fill all fields.', 'error');
+      const isoDate = new Date(date).toISOString();
+      try {
+        const data = await api('POST', '/booking/', { restaurant_id, date: isoDate, guests });
+        notice('modal-booking-notice', `Booking confirmed! Table #${data.table_id} reserved.`, 'success');
+        setTimeout(() => closeModal('modal-create-booking'), 1200);
+      } catch (e) { notice('modal-booking-notice', e.message, 'error'); }
+    }
+
+    // ── MODALS ──
+    function openModal(id) {
+      $(id).classList.add('open');
+      // Pre-populate restaurant dropdown in booking modal
+      if (id === 'modal-create-booking') loadRestaurantsForBooking();
+    }
+
+    function closeModal(id) {
+      $(id).classList.remove('open');
+      // Clear notices
+      ['modal-restaurant-notice', 'modal-dish-notice', 'modal-table-notice', 'modal-booking-notice']
+        .forEach(n => notice(n, ''));
+    }
+
+    // Close modal on overlay click
+    document.querySelectorAll('.modal-overlay').forEach(overlay => {
+      overlay.addEventListener('click', e => {
+        if (e.target === overlay) overlay.classList.remove('open');
       });
-    } catch (e) {}
-  }
-
-  async function loadBookings() {
-    $('bookings-content').innerHTML = '<div class="loading"><div class="spinner"></div>Loading...</div>';
-    // The API doesn't have a "my bookings" list endpoint in the provided backend,
-    // so we show a prompt to create a booking instead.
-    $('bookings-content').innerHTML = `
-      <div class="notice">Your active bookings will appear here after you create one below. Use the <strong>+ New Booking</strong> button to reserve a table.</div>
-      <div class="empty" style="padding-top:32px">
-        <span class="icon">◇</span>
-        <p>No bookings history endpoint available — create a new booking above.</p>
-      </div>`;
-  }
-
-  async function submitBooking() {
-    const restaurant_id = parseInt($('b-restaurant').value);
-    const date = $('b-date').value;
-    const guests = parseInt($('b-guests').value);
-    if (!restaurant_id || !date || !guests) return notice('modal-booking-notice', 'Fill all fields.', 'error');
-    const isoDate = new Date(date).toISOString();
-    try {
-      const data = await api('POST', '/booking/', { restaurant_id, date: isoDate, guests });
-      notice('modal-booking-notice', `Booking confirmed! Table #${data.table_id} reserved.`, 'success');
-      setTimeout(() => closeModal('modal-create-booking'), 1200);
-    } catch (e) { notice('modal-booking-notice', e.message, 'error'); }
-  }
-
-  // ── MODALS ──
-  function openModal(id) {
-    $(id).classList.add('open');
-    // Pre-populate restaurant dropdown in booking modal
-    if (id === 'modal-create-booking') loadRestaurantsForBooking();
-  }
-
-  function closeModal(id) {
-    $(id).classList.remove('open');
-    // Clear notices
-    ['modal-restaurant-notice','modal-dish-notice','modal-table-notice','modal-booking-notice']
-      .forEach(n => notice(n, ''));
-  }
-
-  // Close modal on overlay click
-  document.querySelectorAll('.modal-overlay').forEach(overlay => {
-    overlay.addEventListener('click', e => {
-      if (e.target === overlay) overlay.classList.remove('open');
     });
-  });
 
-  // ── INIT ──
-  updateUI();
-  // Load public counts on home
-  api('GET', '/restaurants').then(d => $('stat-restaurants').textContent = d.length).catch(() => {});
-  api('GET', '/dishes').then(d => $('stat-dishes').textContent = Array.isArray(d) ? d.length : '—').catch(() => {});
-</script>
+    // ── INIT ──
+    updateUI();
+    // Load public counts on home
+    api('GET', '/restaurants').then(d => $('stat-restaurants').textContent = d.length).catch(() => { });
+    api('GET', '/dishes').then(d => $('stat-dishes').textContent = Array.isArray(d) ? d.length : '—').catch(() => { });
+  </script>
 </body>
+
 </html>

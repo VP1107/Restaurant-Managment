@@ -58,10 +58,6 @@ def create_booking(
         status=True
     )
     db.add(db_booking)
-
-    # Step 5: mark the table as booked
-    available_table.booking_status = True
-
     db.commit()
     db.refresh(db_booking)
     return db_booking
@@ -92,8 +88,6 @@ def cancel_booking(
     model.Booking.status == True,
     model.Booking.id != booking_id
     ).first()
-    if not other_active and table:
-        table.booking_status = False
 
     db_booking.status = False   # mark booking as cancelled rather than deleting
     db.commit()
@@ -160,8 +154,6 @@ def admin_cancel_booking(
         model.Booking.status == True,
         model.Booking.id != booking_id
     ).first()
-    if not other_active and table:
-        table.booking_status = False
 
     db_booking.status = False   # mark booking as cancelled rather than deleting
     db.commit()

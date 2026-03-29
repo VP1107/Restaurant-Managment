@@ -35,7 +35,7 @@ def view_restaurants_by_name(name: str, db: Session = Depends(get_db)):
 def add_restaurant(restaurant: schema.RestaurantCreate, db: Session = Depends(get_db), role: str = Depends(get_role)):
     if role != "owner":
         raise HTTPException(status_code=403, detail="Not authorized")
-    db_restaurant = model.Restaurant(**restaurant.dict())
+    db_restaurant = model.Restaurant(**restaurant.model_dump())
     db.add(db_restaurant)
     db.commit()
     db.refresh(db_restaurant)
@@ -48,7 +48,7 @@ def update_restaurant(id: int, restaurant: schema.RestaurantCreate, db: Session 
         raise HTTPException(status_code=403, detail="Not authorized")
     db_restaurant = db.query(model.Restaurant).filter(model.Restaurant.id == id).first()
     if db_restaurant:
-        update_data = restaurant.dict(exclude_unset=True)
+        update_data = restaurant.model_dump(exclude_unset=True)
         for key, value in update_data.items():
             setattr(db_restaurant, key, value)
         db.commit()
